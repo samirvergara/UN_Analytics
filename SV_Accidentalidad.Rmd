@@ -22,10 +22,21 @@ El siguiente código muestra cómo cargar los datos de accidentalidad descargado
 accidentalidad <- read.csv("accidentalidad.csv", header = TRUE, sep = ";", encoding = "UTF-8")
 ```
 
-Vista previa de los datos:
-
 ```{r}
-head(accidentalidad)
+# Instalar paquete para mejorar visualización de tablas
+
+#install.packages("kableExtra")
+library(knitr)
+library(kableExtra)
+
+head_accidentalidad <- head(accidentalidad)
+
+#kable(head_accidentalidad)
+
+head_accidentalidad %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
 ```
 
 La base de accidentalidad tiene `r dim(accidentalidad)[1]` filas y `r dim(accidentalidad)[2]` columnas.
@@ -33,11 +44,12 @@ La base de accidentalidad tiene `r dim(accidentalidad)[1]` filas y `r dim(accide
 La base tiene las siguientes variables:
 
 ```{r echo=FALSE}
+#### Lista de campos base de datos abierta: Accidentalidad
 names(accidentalidad)
+
 ```
 
 <!-- La base tiene las siguientes variables `r names(accidentalidad)`. -->
-
 A continuación se cuenta el número de barrios en la base:
 
 ```{r}
@@ -52,16 +64,27 @@ length(barrios)
 Se filtran los accidentes de tipo choque en el barrio Belén Rosales:
 
 ```{r}
-choques_rosales<-subset(accidentalidad,
-                        subset = (CLASE_ACCIDENTE=="Choque" & barrio=="Rosales"))
+choques_rosales<-subset(accidentalidad,subset = (CLASE_ACCIDENTE=="Choque" & barrio=="Rosales"))
 ```
 
 Previsualización de la base filtrada:
 
 ```{r}
-head(choques_rosales)
+head_choques_rosales<- head(choques_rosales)
+
+head_choques_rosales %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+
 ```
 
+
+### Filtrado de los choques en El Poblado
+
+```{r}
+choques_el_poblado<-subset(accidentalidad, subset = (CLASE_ACCIDENTE=="Choque" & barrio =="El Poblado"))
+```
 
 Conteo del número de accidentes por mes:
 
@@ -73,7 +96,16 @@ consolidado_rosales<-table(choques_rosales$Año,choques_rosales$Mes)
 Accidentalidad en rosales como imagen
 
 ```{r}
-image(t(consolidado_rosales[6:1,]))
+image(t(consolidado_rosales[6:1,]), 
+      #unicol = rainbow(25), 
+      xlab = "Meses", 
+      ylab = "Años", 
+      axes=F)
+#axis(1, at=seq(0, 1, length.out = 12), labels = colnames(consolidado_rosales))
+axis(1, at=seq(0, 1, length.out = 12), labels = c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                                                  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"),
+     las=2)
+axis(2, at=seq(0, 1, length.out = 6 ), labels = rownames(consolidado_rosales), las=1)
 ```
 
 ## Análisis de la serie de tiempo
@@ -100,14 +132,24 @@ orden_acc<-sort(accidentes_por_dia$CLASE_ACCIDENTE,decreasing = TRUE,index.retur
 Fechas con mayor accidentalidad:
 
 ```{r}
-accidentes_por_dia[orden_acc$ix,]
+head(accidentes_por_dia[orden_acc$ix,])
 ```
+
 
 ```{r}
-plot(accidentes_por_dia$f_accidente,accidentes_por_dia$CLASE_ACCIDENTE,type="h",ylim = c(0,3),xlab="Fecha",ylab="Cantidad de accidentes",las=1,main="Choques por fecha",yaxt="n")
-axis(2,at=c(0,1,2,3),labels = c(0,1,2,3),las=1)
+
+plot(accidentes_por_dia$f_accidente, accidentes_por_dia$CLASE_ACCIDENTE, type="h", ylim = c(0,3), 
+     xlab = "Fecha", 
+     ylab = "Cantidad de Accidentes",
+     main = "Choques por fecha",
+     yaxt="n")
+     axis(2, at=c(0,1,2,3),labels=c(0,1,2,3), las=1)
+     
 ```
 
+
+<!-- Actividad: Explorar la función: plotty -->
+<!-- Actividad: Mejorar con Kable -->
 
 ## Análisis espacial
 
@@ -127,7 +169,8 @@ latitud<-coordenadas[seq(2,length(coordenadas),by=2)]
 
 
 ```{r}
-plot(latitud,longitud,xlab="latitud",ylab="longitud")
+plot(latitud,longitud,xlab="Latitud",ylab="Longitud", las=1)
+  grid()
 ```
 
 
@@ -152,11 +195,14 @@ map<-fitBounds(map, lng1=lng1,
                lat1=lat1, 
                lng2=lng2, 
                lat2=lat2)
-map<-addMarkers(map,lat=latitud,lng = longitud)
+map<-addMarkers(map,lat=latitud,lng = longitud,clusterOptions = markerClusterOptions())
 map
+
+
+# Inspeccionar de forma visual si los accidentes tienen una temporalidad. 
+# Colorear los marcadores
+
 ```
-
-
 
 
 
@@ -174,14 +220,13 @@ anno<-format(fechas,"%Y")
 anno<-as.numeric(anno)
 ```
 
-### SV: Se agrega Festivos Colombia
+### Se agregan los festivos en Colombia entre 2014 y 2019
 ```{r}
 festivos_colombia <- read.csv("festivos_colombia_2014_2019.csv", header = TRUE, sep = ";", encoding = "UTF-8")
 festivos_colombia$Dia_Festivo <- as.Date(festivos_colombia$Fecha_TXT,format = "%Y-%m-%d")
 festivos_colombia$Feriado <- "X"
 
 ```
-
 
 
 ```{r}
@@ -227,7 +272,7 @@ accidentalidad$f_accidente<-substr(accidentalidad$FECHA_ACCIDENTE,1,10)
 accidentalidad$f_accidente<-as.Date(accidentalidad$f_accidente,format = "%Y-%m-%d")
 ```
 
-### SV: Cruce con Festivos
+### Resultados: Cruce con festivos Colombia
 
 ```{r}
 accidentalidad_enriquecida<-merge(accidentalidad,FECHAS,by.x = "f_accidente",by.y="fechas")
@@ -311,16 +356,25 @@ for (i in c("lunes","martes","miércoles","jueves","viernes"))
 
 ```
 
-### 1. Corregir sesgo por festivos
-### 2. Mejorar la visualización de los resultados
-###   a. Usando R Básico
-###   b. Usando Plottly
-### 3. Pulir el reporte y subirlo a GitHub
+
+```{r}
+# Instalar paquete para importar o exportar datos
+
+#install.packages("xlsReadWrite")
+
+write.table(head_choques_rosales, dec = ".", sep="\t", row.names = TRUE, col.names = TRUE, file = "head_choques_rosales.csv")
+
+  
+```
 
 
+```{r}
+install.packages("plotly")
+
+```
 
 
-
+  
 
 
 
