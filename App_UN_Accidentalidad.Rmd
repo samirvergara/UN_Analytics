@@ -1,0 +1,107 @@
+---
+title: "Informe Técnico de Accidentalidad"
+author: "Universidad Naciona de Colombia - Especialización en Analítica"
+date: "11/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(knitr)
+library(kableExtra)
+
+```
+
+
+### Datos Abiertos de Movilidad - Alcaldía de Medellín
+Los datos de accidentalidad utilizados en este informe corresponden a registros entre 2014 y mediados de 2019, los cuales fueron descargados del sitio: [Alcaldía de Medellín - OpenData:  Movilidad](https://geomedellin-m-medellin.opendata.arcgis.com/search?tags=movilidad)
+
+
+```{r data, echo=FALSE}
+
+accidentalidad_2014 <- read.csv("Accidentalidad_georreferenciada_2014.csv", header = TRUE, sep = ",", encoding = "UTF-8")
+accidentalidad_2015 <- read.csv("Accidentalidad_georreferenciada_2015.csv", header = TRUE, sep = ",", encoding = "UTF-8")
+accidentalidad_2016 <- read.csv("Accidentalidad_georreferenciada_2016.csv", header = TRUE, sep = ",", encoding = "UTF-8")
+accidentalidad_2017 <- read.csv("Accidentalidad_georreferenciada_2017.csv", header = TRUE, sep = ",", encoding = "UTF-8")
+accidentalidad_2018 <- read.csv("Accidentalidad_georreferenciada_2018.csv", header = TRUE, sep = ",", encoding = "UTF-8")
+accidentalidad_2019 <- read.csv("Accidentalidad_georreferenciada_2019.csv", header = TRUE, sep = ",", encoding = "UTF-8")
+
+all_data <- rbind(accidentalidad_2014,
+                  accidentalidad_2015,
+                  accidentalidad_2016,
+                  accidentalidad_2017,
+                  accidentalidad_2018,
+                  accidentalidad_2019)
+
+
+names(all_data)
+
+all_data_variables <- select(as.character(all_data$FECHA),  
+                             as.character(all_data$COMUNA), 
+                             all_data$X, 
+                             all_data$Y, 
+                             as.character(all_data$CLASE),  
+                             as.character(all_data$GRAVEDAD))
+all_data_variables <- subset(all_data,select = c("FECHA","COMUNA","X","Y","CLASE","GRAVEDAD"))
+                           
+head(all_data_variables)
+  
+class(all_data$FECHA)
+unique(all_data$CLASE)
+unique(all_data$GRAVEDAD)
+
+
+```
+
+#### Volumetría (Accidentalidad por años)
+
+```{r regs_x_year, echo=FALSE}
+all_data_regs <- table(all_data$PERIODO,all_data$MES)
+
+all_data_regs %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+
+image(t(all_data_regs[6:1,]),
+      #unicol = rainbow(25),
+      xlab = "Meses",
+      ylab = "Años",
+      axes=F)
+#axis(1, at=seq(0, 1, length.out = 12), labels = colnames(all_data_regs))
+axis(1, at=seq(0, 1, length.out = 12), labels = c("Ene", "Feb", "Mar", "Abr", "May", "Jun",
+                                                  "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"),las=2)
+axis(2, at=seq(0, 1, length.out = 6 ), labels = rownames(all_data_regs), las=1)
+```
+
+
+```{r file_csv, echo=FALSE}
+write.table(all_data_variables, dec = ",", sep="\t", row.names = TRUE, col.names = TRUE, file = "all_data_variables.csv")
+```
+
+
+```{r}
+head(all_data)
+```
+
+
+<!-- ## R Markdown -->
+
+<!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
+
+<!-- When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this: -->
+
+<!-- ```{r cars} -->
+<!-- summary(cars) -->
+<!-- ``` -->
+
+<!-- ## Including Plots -->
+
+<!-- You can also embed plots, for example: -->
+
+<!-- ```{r pressure, echo=FALSE} -->
+<!-- plot(pressure) -->
+<!-- ``` -->
+
+<!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->
