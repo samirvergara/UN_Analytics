@@ -5,7 +5,7 @@ date: "11/10/2019"
 output: html_document
 ---
 
-Portilla, Stefano <br>
+Portilla, Estefano <br>
 Restrepo, Juan Esteban <br>
 Sterling, Jhordy <br>
 Vergara, Samir <br>
@@ -254,7 +254,7 @@ homologa_comuna_head  %>%
 
 ```{r , echo= FALSE}
 
-# accidentalidad_enriquecida<-merge(accidentalidad_enriquecida, festivos_colombia, by.x = "f_accidente",by.y="Dia_Festivo", all.x = TRUE)
+all_data_variables_enriquecida <- merge(all_data_variables, homologa_comuna, by.x = "COMUNA",by.y="COMUNA_ORI", all.x = TRUE)
 
 ```
 
