@@ -2,7 +2,9 @@
 title: "Informe Técnico de Accidentalidad"
 author: "Universidad Nacional de Colombia - Especialización en Analítica"
 date: "11/10/2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Portilla, Estefano <br>
@@ -106,8 +108,10 @@ all_data <- rbind(accidentalidad_2014,
                   accidentalidad_2019)
 
 
-all_data_variables <- subset(all_data,select = c("HORA","COMUNA","X","Y","CLASE","GRAVEDAD","PERIODO","MES","DIA_NOMBRE"))
+all_data_variables <- subset(all_data,select = c("HORA","COMUNA","X","Y","CLASE","GRAVEDAD","PERIODO","MES","DIA_NOMBRE","DIA"))
+
 all_data_variables$FECHA <- substr(all_data$FECHA,1,10)
+all_data_variables$FECHA <- as.Date(all_data_variables$FECHA,format = "%Y-%m-%d")
 
 ```
 
@@ -175,7 +179,7 @@ all_data_variables$LATITUD  <- pj$y
 all_data_variables$LONGITUD <- pj$x
 
 # Se aumenta la precisión decimal para validar las cifras
-options(digits=12)
+options(digits=8)
 
 ```
 
@@ -235,7 +239,7 @@ comuna <-data.frame(comuna)
 names (comuna) = c("COMUNA_ORI", "FREQ")
 
 # Descarga a CSV los datos de comuna para estandarizar los valores a sólo las 16 comunas y 5 corregimientos de Medellín
-write.table(comuna, dec = ".", sep="\t", row.names = FALSE , col.names = TRUE, file = "homo_comuna.csv")
+write.table(comuna, dec = ".", sep="\t", row.names = FALSE , col.names = TRUE, file = "homo_comuna_to_edit.csv")
 
 ```
 
@@ -247,14 +251,16 @@ homologa_comuna_head <- data.frame(head(homologa_comuna))
 homologa_comuna_head  %>%
   kable() %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = F, position = "left", font_size = 12)
-  
+    
 ```
 
 <br>
 
 ```{r , echo= FALSE}
 
-all_data_variables_enriquecida <- merge(all_data_variables, homologa_comuna, by.x = "COMUNA",by.y="COMUNA_ORI", all.x = TRUE)
+all_data_variables <- merge(all_data_variables, homologa_comuna, by.x = "COMUNA", by.y="COMUNA_ORI", all.x = TRUE)
+
+
 
 ```
 
@@ -362,18 +368,28 @@ Finalmente las variables seleccionadas para el análisis de los datos en la App 
 <br>
 ```{r variables, echo=FALSE}
 
-all_data_variables_sel <- subset(all_data_variables,select = c("PERIODO","MES","DIA_NOMBRE","HORA","HORA_24H","COMUNA","LATITUD","LONGITUD","CLASE","GRAVEDAD"))
+all_data_variables_sel <- subset(all_data_variables,select = c("HORA_24H","DIA_NOMBRE","PERIODO","CLASE","GRAVEDAD","COMUNA_STD","MES","DIA","LATITUD","LONGITUD","FECHA"))
+
+# Se asignan los nombres de acuerdo a la programación de la aplicación Shiny
+names(all_data_variables_sel) <- c("RANGO_HORA","DIA_NOMBRE","PERIODO","CLASE","GRAVEDAD","COMUNA","MES","DIA","LATITUD","LONGITUD","FECHA")
+
+all_data_variables_sel_2 <- subset(all_data_variables_sel, subset = (COMUNA != "No Data"))
+
+
 
 #names(all_data_variables)
-head(all_data_variables_sel) %>%
+head(all_data_variables_sel_2) %>%
   kable() %>%
   kable_styling( bootstrap_options = c("striped", "hover", "condensed", full_width = F), font_size = 12, position = "left")
 
 ```
 
 ```{r download, echo=FALSE}
-# Descarga a CSV los datos que hacen parte del análisis
-write.table(all_data_variables, dec = ".", sep="\t", row.names = FALSE , col.names = TRUE, file = "all_data_variables.csv")
+# Descarga a CSV los datos que hacen parte del análisis en Shinny
+
+
+
+write.table(all_data_variables_sel, dec = ".", sep="\t", row.names = FALSE , col.names = TRUE, file = "accidentalidad_2014_2019.csv")
 
 ```
 
@@ -417,16 +433,16 @@ Se puede apreciar que la mayor cantidad de accidentes coincide con los horarios 
 
 ```{r , echo=FALSE}
 all_data_variables_sel_3 <-  all_data_variables_sel %>%
-  group_by(HORA_24H, DIA_NOMBRE)%>%
+  group_by(RANGO_HORA, DIA_NOMBRE)%>%
   summarise(
     Frecuencia = n(),
   )
 
-ggplot(data = all_data_variables_sel_3, aes(y= Frecuencia, x = HORA_24H, color=factor(DIA_NOMBRE)))+ 
+ggplot(data = all_data_variables_sel_3, aes(y= Frecuencia, x = RANGO_HORA, color=factor(DIA_NOMBRE)))+ 
               geom_point()+
               theme_bw()+
               labs(color = "Día Semana", x="Hora")+
-              scale_x_discrete("Hora 24H", limits=names(all_data_variables_sel_3$HORA_24H))
+              scale_x_discrete("Hora 24H", limits=names(all_data_variables_sel_3$RANGO_HORA))
 
 ```
 
@@ -457,6 +473,28 @@ ggplot(data= all_data_variables_sel_2, aes(x=MES, y=Accidentes, fill=PERIODO)) +
     #geom_text(aes(label=Accidentes), vjust=-0.5, color="white", size = 5)
 
 ```
+
+#### 5.4 Accidentalidad por comuna
+A continuación un gráfico de barras comunas (Se usa la variable COMUNA estandarizda):
+
+```{r, echo=FALSE}
+
+all_data_variables_sel_4 <- all_data_variables_sel%>%
+  group_by(COMUNA)%>%
+  summarise(
+    Accidentes = n(),)
+
+ggplot(data= all_data_variables_sel_4, aes(x=reorder(COMUNA,Accidentes), y=Accidentes))+
+    geom_bar(stat="identity", fill= c("Green","Green","Green","Green","Green","Green","Green","Yellow","Yellow","Yellow","Yellow","Yellow","Orange","Orange","Orange","Orange","Orange","Red","Red","Red","Red","Red"))+
+    theme_minimal()+
+    theme_bw()+
+    coord_flip() +
+    theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
+    labs(title="Accidentalidad por comuna", y = "Número accidentes", x = "Comuna") 
+
+
+```
+
 
 ### 6. Conclusiones
 
